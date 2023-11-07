@@ -43,6 +43,7 @@ main(int argc, char *argv[])
         pingpong();
     } else {
         fprintf(2, "User: pingpong");
+        exit(1);
     }
     exit(0);
 }
