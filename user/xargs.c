@@ -3,10 +3,10 @@
 #include "user/user.h"
 #include "kernel/param.h"
 #define MAXLEN 100
-int
-main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
-    if(argc <= 1) {
+    if (argc <= 1)
+    {
         fprintf(2, "usage: xargs command (arg...)\n");
         exit(1);
     }
@@ -15,28 +15,34 @@ main(int argc, char *argv[])
     char new_argv[MAXARG][MAXLEN]; // assuming the maximun single parameter length is 512
     char *p_new_argv[MAXARG];
 
-    while(1) {
+    while (1)
+    {
         memset(new_argv, 0, MAXARG * MAXLEN); // reset the parameter
 
-        for(int i = 1; i < argc; ++i) {
-            strcpy(new_argv[i-1], argv[i]);
+        for (int i = 1; i < argc; ++i)
+        {
+            strcpy(new_argv[i - 1], argv[i]);
         }
 
         int cur_argc = argc - 1;
         int offset = 0;
         int is_read = 0;
 
-        while((is_read = read(0, &buf, 1)) > 0) {
-            if(buf == ' ') {
+        while ((is_read = read(0, &buf, 1)) > 0)
+        {
+            if (buf == ' ')
+            {
                 cur_argc++;
-                offset = 0; 
+                offset = 0;
                 continue;
             }
-            if(buf == '\n') {
+            if (buf == '\n')
+            {
                 printf("%d", is_read);
                 break;
             }
-            if(offset==MAXLEN) {
+            if (offset >= MAXLEN)
+            {
                 fprintf(2, "xargs: parameter too long\n");
                 exit(1);
             }
@@ -48,15 +54,15 @@ main(int argc, char *argv[])
         }
         if(is_read <= 0) {
             break;
-        } 
+        }
         for(int i = 0; i <= cur_argc; ++i) {
             p_new_argv[i] = new_argv[i];
         }
-        
+
         if(fork() == 0) {
             exec(command, p_new_argv);
             exit(1);
-        } 
+        }
         wait((int*) 0);
     }
     exit(0);
@@ -68,7 +74,7 @@ main(int argc, char *argv[])
 // #include "kernel/param.h"
 
 // #define MAXLINE 128
-// int 
+// int
 // main(int argc, char *argv[])
 // {
 //     if(argc < 2){
@@ -92,7 +98,7 @@ main(int argc, char *argv[])
 //     //char block[32];
 //     int m = 0;
 //     while((r = read(0, buf, sizeof(buf))) > 0){
-//         // 错误 
+//         // 错误
 //         if(r >= MAXLINE - 1){
 //             fprintf(2, "xargs: argument too long\n");
 //             exit(1);
@@ -110,9 +116,9 @@ main(int argc, char *argv[])
 //             }
 //         }
 
-//     }  
+//     }
 //     printf("%d\n", m);
-    
+
 //     if(m <= 0){
 //         fprintf(2, "xargs: no argument\n");
 //         exit(1);
@@ -120,18 +126,18 @@ main(int argc, char *argv[])
 //     buf[m] = 0; // 休止符
 //     //printf("%s\n", buf);
 //     // 写入参数
-    
+
 //     for(int j = argCount; j < argCount+tol; ++j){
 //         if(buf[statr] == ' '){
 //             buf[statr++] = 0;
 //             statr = 0;
-//         }else{ 
+//         }else{
 //             statr++;
 //         }
 //         args[j] = buf + statr++;
 //     }
 //     argCount += tol;
-    
+
 //     args[argCount] = 0;
 //     //printf("%d\n", argCount);
 //     // for(int k = 0; k < argCount; k++){
@@ -146,6 +152,6 @@ main(int argc, char *argv[])
 //     }else{
 //         wait(0);
 //     }
-    
+
 //     exit(0);
 // }
