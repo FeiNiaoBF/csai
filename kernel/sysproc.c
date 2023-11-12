@@ -95,3 +95,16 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// trace in sysproc.c
+uint64
+sys_trace(void)
+{
+    int make;
+    if (argint(0, &make) < 0)
+    {
+        return -1;
+    }
+    myproc()->make = (uint32)make;
+    return 0;
+}
