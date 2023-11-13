@@ -654,3 +654,20 @@ procdump(void)
     printf("\n");
   }
 }
+
+// To collect the number of processes
+uint64
+nprocinfo(void)
+{
+    uint64 tolal = 0;
+    struct proc *p;
+    // proc 只需要UNUSED
+    for (p = proc; p < &proc[NPROC]; p++)
+    {
+        if (p->state != UNUSED)
+        {
+            tolal++;
+        }
+    }
+    return tolal;
+}
