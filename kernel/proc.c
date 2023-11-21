@@ -677,3 +677,33 @@ procdump(void)
     printf("\n");
   }
 }
+
+int pgaccess(char *base, int pages, uint64 abit)
+{
+    // First, it takes the starting virtual address of
+    //  the first user page to check.
+    // Second, it takes the number of pages to check.
+    // Finally, it takes a user address to a buffer to store
+    //  the results into a bitmask
+    struct proc *p = myproc();
+    pagetable_t page = p->pagetable;
+    if (base < 0L){
+        //panic("");
+        return -1;
+    }
+    // 32 * 4096 = 128KB
+    if (pages > 64){
+        //panic("");
+        return -1;
+    }
+    int bitmap = 0L;
+    for(int i = 0; i < pages; i++) {
+        pte_t *pte = walk(page, ((uint64)base) + i * PGSIZE, 0);
+        if(pte != 0 && ((*pte) & PTE_A)){
+            bitmap |= (1L << i);
+            // clear PTE_A
+            *pte ^= PTE_A;
+        }
+    }
+    return copyout(page, abit, (char*)&bitmap, sizeof(int));
+}

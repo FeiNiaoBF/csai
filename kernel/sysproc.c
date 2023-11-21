@@ -46,7 +46,7 @@ sys_sbrk(void)
 
   if(argint(0, &n) < 0)
     return -1;
-  
+
   addr = myproc()->sz;
   if(growproc(n) < 0)
     return -1;
@@ -75,13 +75,22 @@ sys_sleep(void)
   return 0;
 }
 
-
+// Detecting which pages have been accessed
 #ifdef LAB_PGTBL
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
-  return 0;
+    // lab pgtbl: your code here.
+    // args[3] := buf,page numbers, addreas
+    uint64 p, buf;
+    int nums;
+    if (argaddr(0, &buf) < 0)
+        return -1;
+    if (argint(1, &nums) < 0)
+        return -1;
+    if (argaddr(2, &p) < 0)
+        return -1;
+    return pgaccess((char *)buf, nums, p);
 }
 #endif
 
