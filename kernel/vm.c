@@ -458,7 +458,8 @@ void vmprint_helper(pagetable_t pagetable, int rank)
         if ((pte & PTE_V) && rank < 3)
         {
             uint64 child = PTE2PA(pte);
-            printf("%s%d: pte %p pa %p\n", level, i, pte, child);
+            uint16 fl = (pte & 0x000001FF);
+            printf("%s%d: pte %p pa %p fl 0x%x\n", level, i, pte, child, fl);
             if (rank < 3)
                 vmprint_helper((pagetable_t)child, rank + 1);
         }
