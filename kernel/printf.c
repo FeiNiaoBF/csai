@@ -132,3 +132,21 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+// 利用当前的 FP 来定位，并根据（-16）来确认上一个 FP 的地址
+void backtrace(void)
+{
+    uint64 fp = r_fp();
+    uint64 ra = r_ra();
+
+    if (fp <= PGROUNDDOWN(fp))
+        panic("backtrace: No fp");
+
+    for (; fp < PGROUNDUP(fp); ra = *(uint64 *)(fp - 0x08))
+    {
+        // printf("PGROUNDUP(fp) = %p\n", PGROUNDUP(fp));
+        // printf("fp = %p\n", fp);
+        printf("%p\n", ra);
+        fp = *(uint64 *)(fp - 0x10);
+    }
+}
