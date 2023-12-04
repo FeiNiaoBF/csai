@@ -96,3 +96,24 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Two parameters
+// - ticks :
+// - func  :  kernel should cause application function to be called
+uint64
+sys_sigalarm(void)
+{
+    int ticks;
+    uint64 fn;
+    if (argint(0, &ticks) < 0 || argaddr(1, &fn) < 0)
+        return -1;
+    void (*handler)() = (void (*)())fn;
+
+    return sigalarm(ticks, handler);
+}
+
+uint64
+sys_sigreturn(void)
+{
+    return sigreturn();
+}
