@@ -85,15 +85,17 @@ usertrap(void)
   // 就将内存中epc的寄存器值改变为alarm处理函数的地址
   {
       p->alarm_ticks++;
-      if (p->alarm_ticks == p->alarm_interval && p->alarm_interval > 0)
+      if (p->alarm_ticks == p->alarm_interval && 0 < p->alarm_interval)
       {
-          p->trapframe->epc = (uint64)p->alarm_pointer;
-      }
-      else
-      {
-          yield();
+          *p->ala_trapframe = *p->trapframe;
+          p->trapframe->epc = p->alarm_pointer;
       }
   }
+  else
+  {
+      yield();
+  }
+
   usertrapret();
 }
 
@@ -231,7 +233,7 @@ devintr()
   }
 }
 
-//
+// 开始 alarm 的函数
 int sigalarm(int ticks, void (*handler)())
 {
     struct proc *p = myproc();
@@ -241,8 +243,12 @@ int sigalarm(int ticks, void (*handler)())
     return 0;
 }
 
-//
+// 返回 alarm 的函数
 int sigreturn(void)
 {
+    struct proc *p = myproc();
+    *p->trapframe = *p->ala_trapframe;
+    p->alarm_ticks = 0;
+
     return 0;
 }

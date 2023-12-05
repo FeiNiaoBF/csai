@@ -48,7 +48,7 @@ test0()
   sigalarm(2, periodic);
   for(i = 0; i < 1000*500000; i++){
     if((i % 1000000) == 0)
-      write(2, ".", 1);
+        write(2, ".", 1); // syscall - trap
     if(count > 0)
       break;
   }
@@ -62,7 +62,7 @@ test0()
 
 void __attribute__ ((noinline)) foo(int i, int *j) {
   if((i % 2500000) == 0) {
-    write(2, ".", 1);
+      write(2, ".", 1); // syscall - trap
   }
   *j += 1;
 }
@@ -88,7 +88,7 @@ test1()
   for(i = 0; i < 500000000; i++){
     if(count >= 10)
       break;
-    foo(i, &j);
+    foo(i, &j); // 其他的进程导致 trap
   }
   if(count < 10){
     printf("\ntest1 failed: too few calls to the handler\n");

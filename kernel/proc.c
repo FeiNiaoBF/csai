@@ -128,9 +128,17 @@ found:
   }
 
   // alarm
+  if ((p->ala_trapframe = (struct trapframe *)kalloc()) == 0)
+  {
+      freeproc(p);
+      release(&p->lock);
+      return 0;
+  }
   p->alarm_ticks = 0;
   p->alarm_interval = 0;
   p->alarm_pointer = 0;
+  p->alarm_lock = 0;
+  
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -160,6 +168,13 @@ freeproc(struct proc *p)
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
+  if (p->ala_trapframe)
+      kfree((void *)p->ala_trapframe);
+  p->ala_trapframe = 0;
+  p->alarm_interval = 0;
+  p->alarm_pointer = 0;
+  p->alarm_ticks = 0;
+  p->alarm_lock = 0;
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
