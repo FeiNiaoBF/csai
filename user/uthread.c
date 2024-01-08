@@ -10,17 +10,38 @@
 #define STACK_SIZE  8192
 #define MAX_THREAD  4
 
+// thread context
+// save thread's registers
+typedef struct context
+{
+    uint64 ra;
+    uint64 sp;
+    // callee-saved
+    uint64 s0; // fp
+    uint64 s1;
+    uint64 s2;
+    uint64 s3;
+    uint64 s4;
+    uint64 s5;
+    uint64 s6;
+    uint64 s7;
+    uint64 s8;
+    uint64 s9;
+    uint64 s10;
+    uint64 s11;
+} context_t;
 
 struct thread {
   char       stack[STACK_SIZE]; /* the thread's stack */
   int        state;             /* FREE, RUNNING, RUNNABLE */
+  context_t context;            /* swtch() here to run thread */
 };
+
 struct thread all_thread[MAX_THREAD];
 struct thread *current_thread;
-extern void thread_switch(uint64, uint64);
-              
-void 
-thread_init(void)
+extern void thread_switch(context_t *, context_t *);
+
+void thread_init(void)
 {
   // main() is thread 0, which will make the first invocation to
   // thread_schedule().  it needs a stack so that the first thread_switch() can
@@ -31,8 +52,7 @@ thread_init(void)
   current_thread->state = RUNNING;
 }
 
-void 
-thread_schedule(void)
+void thread_schedule(void)
 {
   struct thread *t, *next_thread;
 
@@ -40,12 +60,14 @@ thread_schedule(void)
   next_thread = 0;
   t = current_thread + 1;
   for(int i = 0; i < MAX_THREAD; i++){
-    if(t >= all_thread + MAX_THREAD)
-      t = all_thread;
-    if(t->state == RUNNABLE) {
-      next_thread = t;
-      break;
-    }
+      // t->thread[0]
+      if (t >= all_thread + MAX_THREAD)
+          t = all_thread;
+      if (t->state == RUNNABLE)
+      {
+          next_thread = t;
+          break;
+      }
     t = t + 1;
   }
 
@@ -58,28 +80,35 @@ thread_schedule(void)
     next_thread->state = RUNNING;
     t = current_thread;
     current_thread = next_thread;
-    /* YOUR CODE HERE
-     * Invoke thread_switch to switch from t to next_thread:
-     * thread_switch(??, ??);
-     */
-  } else
-    next_thread = 0;
-}
 
-void 
-thread_create(void (*func)())
-{
-  struct thread *t;
-
-  for (t = all_thread; t < all_thread + MAX_THREAD; t++) {
-    if (t->state == FREE) break;
+    // switch(old, new);
+    thread_switch(&t->context, &next_thread->context);
   }
-  t->state = RUNNABLE;
-  // YOUR CODE HERE
+  else // slef
+      next_thread = 0;
 }
 
-void 
-thread_yield(void)
+void thread_create(void (*func)())
+{
+    struct thread *t;
+
+    for (t = all_thread; t < all_thread + MAX_THREAD; t++)
+    {
+        if (t->state == FREE)
+            break;
+    }
+    t->state = RUNNABLE;
+    /*TODO*/
+    // One goal is ensure that when thread_schedule()
+    // runs a given thread for the first time,
+    // the thread executes the function passed to thread_create(),
+    // on its own stack.
+
+    t->context.ra = (uint64)func;
+    t->context.sp = (uint64)(t->stack + STACK_SIZE - 1); // error: t->stack[STACK_SIZE - 1] -> (uint64)&(t->stack[STACK_SIZE - 1])
+}
+
+void thread_yield(void)
 {
   current_thread->state = RUNNABLE;
   thread_schedule();
@@ -88,15 +117,14 @@ thread_yield(void)
 volatile int a_started, b_started, c_started;
 volatile int a_n, b_n, c_n;
 
-void 
-thread_a(void)
+void thread_a(void)
 {
   int i;
   printf("thread_a started\n");
   a_started = 1;
   while(b_started == 0 || c_started == 0)
     thread_yield();
-  
+
   for (i = 0; i < 100; i++) {
     printf("thread_a %d\n", i);
     a_n += 1;
@@ -108,15 +136,14 @@ thread_a(void)
   thread_schedule();
 }
 
-void 
-thread_b(void)
+void thread_b(void)
 {
   int i;
   printf("thread_b started\n");
   b_started = 1;
   while(a_started == 0 || c_started == 0)
     thread_yield();
-  
+
   for (i = 0; i < 100; i++) {
     printf("thread_b %d\n", i);
     b_n += 1;
@@ -128,15 +155,14 @@ thread_b(void)
   thread_schedule();
 }
 
-void 
-thread_c(void)
+void thread_c(void)
 {
   int i;
   printf("thread_c started\n");
   c_started = 1;
   while(a_started == 0 || b_started == 0)
     thread_yield();
-  
+
   for (i = 0; i < 100; i++) {
     printf("thread_c %d\n", i);
     c_n += 1;
@@ -148,8 +174,7 @@ thread_c(void)
   thread_schedule();
 }
 
-int 
-main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
   a_started = b_started = c_started = 0;
   a_n = b_n = c_n = 0;

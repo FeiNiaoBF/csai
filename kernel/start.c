@@ -21,22 +21,22 @@ void
 start()
 {
   // set M Previous Privilege mode to Supervisor, for mret.
-  unsigned long x = r_mstatus();
+  unsigned long x = r_mstatus();    // 0xa00000000
   x &= ~MSTATUS_MPP_MASK;
   x |= MSTATUS_MPP_S;
-  w_mstatus(x);
+  w_mstatus(x);                     // 0xa00000800
 
   // set M Exception Program Counter to main, for mret.
   // requires gcc -mcmodel=medany
-  w_mepc((uint64)main);
+  w_mepc((uint64)main);             // pc -> main
 
   // disable paging for now.
   w_satp(0);
 
   // delegate all interrupts and exceptions to supervisor mode.
-  w_medeleg(0xffff);
-  w_mideleg(0xffff);
-  w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);
+  w_medeleg(0xffff);        // (gdb) 0xbfff; way?
+  w_mideleg(0xffff);        // (gdb) 0x666; way?
+  w_sie(r_sie() | SIE_SEIE | SIE_STIE | SIE_SSIE);  // 0x222
 
   // configure Physical Memory Protection to give supervisor mode
   // access to all of physical memory.

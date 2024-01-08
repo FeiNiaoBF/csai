@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "*.excalidraw": "json",
+        "*.excalidrawlib": "json",
+        "defs.h": "c",
+        "date.h": "c",
+        "spinlock.h": "c",
+        "memlayout.h": "c",
+        "atomic": "c",
+        "*.tcc": "c",
+        "fstream": "c",
+        "sstream": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled",
+    "github-enterprise.uri": "https://g.csail.mit.edu"
+}
