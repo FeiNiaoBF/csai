@@ -105,7 +105,8 @@ void thread_create(void (*func)())
     // on its own stack.
 
     t->context.ra = (uint64)func;
-    t->context.sp = (uint64)(t->stack + STACK_SIZE - 1); // error: t->stack[STACK_SIZE - 1] -> (uint64)&(t->stack[STACK_SIZE - 1])
+    t->context.sp = (uint64)(t->stack + STACK_SIZE - 1);
+    // error: t->stack[STACK_SIZE - 1] -> (uint64)&(t->stack[STACK_SIZE - 1])
 }
 
 void thread_yield(void)
