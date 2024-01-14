@@ -314,6 +314,35 @@ sys_open(void)
       end_op();
       return -1;
     }
+
+    if(ip->type == T_SYMLINK){
+        if(!(omode & O_NOFOLLOW)){
+            int cycle = 0;
+            while(1){
+                cycle++;
+                if(cycle >= LINKCYCLE){
+                    iunlockput(ip);
+                    end_op();
+                    return -1;
+                }
+                if(readi(ip, 0, (uint64)path, 0, MAXPATH) < 0){
+                    iunlockput(ip);
+                    end_op();
+                    return -1;
+                }
+                iunlockput(ip);
+
+                if((ip = namei(path)) == 0){
+                    end_op();
+                    return -1;
+                }
+                ilock(ip);
+                if(ip->type != T_SYMLINK){
+                    break;
+                }
+            }
+        }
+    }
   }
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
@@ -344,6 +373,7 @@ sys_open(void)
   if((omode & O_TRUNC) && ip->type == T_FILE){
     itrunc(ip);
   }
+
 
   iunlock(ip);
   end_op();
@@ -393,7 +423,7 @@ sys_chdir(void)
   char path[MAXPATH];
   struct inode *ip;
   struct proc *p = myproc();
-  
+
   begin_op();
   if(argstr(0, path, MAXPATH) < 0 || (ip = namei(path)) == 0){
     end_op();
@@ -483,4 +513,37 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+
+uint64
+sys_symlink(void){
+    char dest[MAXPATH], src[MAXPATH];
+    struct inode *ip;
+
+    if(argstr(0, dest, MAXPATH) < 0 || argstr(1, src, MAXPATH) < 0)
+        return -1;
+
+    if (namei(src) != 0) {
+        return -1;
+    }
+    begin_op();
+    // create a new inode for the symlink
+    if((ip = create(src, T_SYMLINK, 0, 0)) == 0){
+        end_op();
+        return -1;
+    }
+    // 我不必知道 dest 的inode，我只要修改 src 的inode 的 addrs[0] 就可以了
+    // addrs[0] 是 symlink 的目标路径
+    // write the destination path to the symlink
+
+    if(writei(ip, 0, (uint64)dest, 0, MAXPATH) < 0){
+        ip->inum = 0;
+        iupdate(ip);
+        iunlockput(ip);
+        end_op();
+        return -1;
+    }
+    iunlockput(ip);
+    end_op();
+    return 0;
 }

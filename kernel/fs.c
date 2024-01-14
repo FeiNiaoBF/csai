@@ -409,7 +409,7 @@ bmap(struct inode *ip, uint bn)
   // doubly-indirect block
   bn -= NINDIRECT; // bn = 268 - 65803
 
-  if(bn < NINDIRECT * NINDIRECT){ // bn = 0-65535
+  if(bn < TNINDIRECT){ // bn = 0-65535
     // Load doubly indirect block
     if((addr = ip->addrs[NDIRECT + 1]) == 0)
       ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev);
