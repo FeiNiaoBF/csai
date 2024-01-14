@@ -377,27 +377,58 @@ iunlockput(struct inode *ip)
 static uint
 bmap(struct inode *ip, uint bn)
 {
-  uint addr, *a;
-  struct buf *bp;
+  uint addr, *a, *b;
+  struct buf *bp1, *bp2;
 
-  if(bn < NDIRECT){
+  // 0-10
+  if(bn < NDIRECT){  // bn = 0-11
     if((addr = ip->addrs[bn]) == 0)
       ip->addrs[bn] = addr = balloc(ip->dev);
     return addr;
   }
-  bn -= NDIRECT;
 
-  if(bn < NINDIRECT){
+  // 11 --- 256
+  // block 11 is the indirect block
+  bn -= NDIRECT;   // bn = 12-267
+
+  if(bn < NINDIRECT){ // bn = 0-255
     // Load indirect block, allocating if necessary.
-    if((addr = ip->addrs[NDIRECT]) == 0)
-      ip->addrs[NDIRECT] = addr = balloc(ip->dev);
-    bp = bread(ip->dev, addr);
-    a = (uint*)bp->data;
-    if((addr = a[bn]) == 0){
-      a[bn] = addr = balloc(ip->dev);
-      log_write(bp);
+    if((addr = ip->addrs[NDIRECT]) == 0)            // ip->addrs[11] = 0
+      ip->addrs[NDIRECT] = addr = balloc(ip->dev);  // ip->addrs[11] = 12
+    bp1 = bread(ip->dev, addr);                      // bp->data = 12
+    a = (uint*)bp1->data;                            // a = 12
+    if((addr = a[bn]) == 0){                        // a[0] = 0
+      a[bn] = addr = balloc(ip->dev);               // a[0] = 13
+      log_write(bp1);
     }
-    brelse(bp);
+    brelse(bp1);
+    return addr;
+  }
+
+  // 12 --- 256 * 256
+  // doubly-indirect block
+  bn -= NINDIRECT; // bn = 268 - 65803
+
+  if(bn < NINDIRECT * NINDIRECT){ // bn = 0-65535
+    // Load doubly indirect block
+    if((addr = ip->addrs[NDIRECT + 1]) == 0)
+      ip->addrs[NDIRECT + 1] = addr = balloc(ip->dev);
+    // first indirect block
+    bp1 = bread(ip->dev, addr);
+    a = (uint*)bp1->data;
+    if((addr = a[bn / NINDIRECT]) == 0){
+      a[bn / NINDIRECT] = addr = balloc(ip->dev);
+      log_write(bp1);
+    }
+    // second indirect block
+    bp2 = bread(ip->dev, addr);
+    b = (uint*)bp2->data;
+    if((addr = b[bn % NINDIRECT]) == 0){
+        b[bn % NINDIRECT] = addr = balloc(ip->dev);
+        log_write(bp2);
+    }
+    brelse(bp1);
+    brelse(bp2);
     return addr;
   }
 
@@ -410,27 +441,48 @@ void
 itrunc(struct inode *ip)
 {
   int i, j;
-  struct buf *bp;
-  uint *a;
-
+  struct buf *bp1, *bp2;
+  uint *a, *b;
+  // 0-10
   for(i = 0; i < NDIRECT; i++){
     if(ip->addrs[i]){
       bfree(ip->dev, ip->addrs[i]);
       ip->addrs[i] = 0;
     }
   }
-
+  // 11
   if(ip->addrs[NDIRECT]){
-    bp = bread(ip->dev, ip->addrs[NDIRECT]);
-    a = (uint*)bp->data;
+    bp1 = bread(ip->dev, ip->addrs[NDIRECT]);
+    a = (uint*)bp1->data;
     for(j = 0; j < NINDIRECT; j++){
       if(a[j])
         bfree(ip->dev, a[j]);
     }
-    brelse(bp);
+    brelse(bp1);
     bfree(ip->dev, ip->addrs[NDIRECT]);
     ip->addrs[NDIRECT] = 0;
   }
+  // 12 douberly-indirect
+  if(ip->addrs[NDIRECT+1]){
+    bp1 = bread(ip->dev, ip->addrs[NDIRECT+1]);
+    a = (uint*)bp1->data;
+    for(j = 0; j < NINDIRECT; j++){
+        if(a[j]){
+            bp2 = bread(ip->dev, a[j]);
+            b = (uint*)bp2->data;
+            for(i = 0; i < NINDIRECT; i++){
+                if(b[i])
+                    bfree(ip->dev, b[i]);
+            }
+            brelse(bp2);
+            bfree(ip->dev, a[j]);
+        }
+    }
+    brelse(bp1);
+    bfree(ip->dev, ip->addrs[NDIRECT+1]);
+    ip->addrs[NDIRECT+1] = 0;
+  }
+
 
   ip->size = 0;
   iupdate(ip);
