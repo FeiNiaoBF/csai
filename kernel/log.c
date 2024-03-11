@@ -231,7 +231,7 @@ log_write(struct buf *b)
     bpin(b);
     log.lh.n++;
   }
-  // printf("log_write: blockno: %d\n", b->blockno);
+    printf("log_write: blockno: %d\n", b->blockno);
   // printf("log_write: log.lh.n: %d\n", log.lh.n);
   // printf("log_write: log.committing: %d\n", log.committing);
   release(&log.lock);
